@@ -78,19 +78,19 @@ def parse_config(args):
     args.checkpoint_interval = config['Outputs'].getint('checkpoint_interval')
     args.results_pkl = os.path.join(args.model_dir, 'results.p')
 
-    args.use_dropclass = config['Dropclass'].getboolean('use_dropclass', fallback=False)
-    args.its_per_drop = config['Dropclass'].getint('its_per_drop', fallback=1000)
-    args.num_drop = config['Dropclass'].getint('num_drop', fallback=2000)
-    args.drop_per_batch = config['Dropclass'].getboolean('drop_per_batch', fallback=False)
-    args.reset_affine_each_it = config['Dropclass'].getboolean('reset_affine_each_it', fallback=False)
+    #args.use_dropclass = config['Dropclass'].getboolean('use_dropclass', fallback=False)
+    #args.its_per_drop = config['Dropclass'].getint('its_per_drop', fallback=1000)
+    #args.num_drop = config['Dropclass'].getint('num_drop', fallback=2000)
+    #args.drop_per_batch = config['Dropclass'].getboolean('drop_per_batch', fallback=False)
+    #args.reset_affine_each_it = config['Dropclass'].getboolean('reset_affine_each_it', fallback=False)
 
-    args.use_dropadapt = config['Dropclass'].getboolean('use_dropadapt', fallback=False)
-    args.ds_adapt = config['Dropclass'].get('ds_adapt', fallback='vc')
-    assert args.ds_adapt in ['vc', 'sitw']
-    args.dropadapt_combine = config['Dropclass'].getboolean('dropadapt_combine', fallback=True)
-    args.dropadapt_uniform_agg = config['Dropclass'].getboolean('dropadapt_uniform_agg', fallback=False)
-    args.dropadapt_random = config['Dropclass'].getboolean('dropadapt_random', fallback=False)
-    args.dropadapt_onlydata = config['Dropclass'].getboolean('dropadapt_onlydata', fallback=False)
+    #args.use_dropadapt = config['Dropclass'].getboolean('use_dropadapt', fallback=False)
+    #args.ds_adapt = config['Dropclass'].get('ds_adapt', fallback='vc')
+    #assert args.ds_adapt in ['vc', 'sitw']
+    #args.dropadapt_combine = config['Dropclass'].getboolean('dropadapt_combine', fallback=True)
+    #args.dropadapt_uniform_agg = config['Dropclass'].getboolean('dropadapt_uniform_agg', fallback=False)
+    #args.dropadapt_random = config['Dropclass'].getboolean('dropadapt_random', fallback=False)
+    #args.dropadapt_onlydata = config['Dropclass'].getboolean('dropadapt_onlydata', fallback=False)
     return args
 
 
@@ -184,10 +184,11 @@ def train(ds_train):
 
     data_generator = ds_train.get_batches(batch_size=args.batch_size, max_seq_len=args.max_seq_len)
 
-    if args.use_dropclass:
-        classifier.drop()
-    else:
-        classifier.nodrop()
+    #if args.use_dropclass:
+    #    classifier.drop()
+    #else:
+    
+    classifier.nodrop()
 
     if args.model_type == 'FTDNN':
         drop_indexes = np.linspace(0, 1, args.num_iterations)
@@ -207,6 +208,7 @@ def train(ds_train):
         if args.model_type == 'FTDNN':
             generator.set_dropout_alpha(drop_schedule[iterations-1])
 
+        """
         if args.use_dropclass and not args.drop_per_batch and not args.use_dropadapt:
             if iterations % args.its_per_drop == 0 or iterations == 1:
                 ds_train, classifier = drop_classes(ds_train, classifier, num_drop=args.num_drop)
@@ -237,20 +239,24 @@ def train(ds_train):
                         print('------ [{}/{}] classes remaining'.format(len(classifier.rem_classes), classifier.n_classes))
                         np.save(os.path.join(args.model_dir, 'remclasses_{}.npy'.format(iterations)), classifier.rem_classes)
                         del full_probs
+        """
 
         feats, iden = next(data_generator)
 
+        """
         if args.drop_per_batch and args.use_dropclass:
             classifier = drop_per_batch(iden, classifier)
             if args.reset_affine_each_it:
                 classifier.reset_parameters()
+        """
 
         feats = feats.to(device)
 
-        if args.use_dropclass:
-            iden = classifier.get_mini_labels(iden).to(device)
-        else:
-            iden = torch.LongTensor(iden).to(device)
+        #if args.use_dropclass:
+        #    iden = classifier.get_mini_labels(iden).to(device)
+        #else:
+        
+        iden = torch.LongTensor(iden).to(device)
 
         if args.multi_gpu:
             embeds = dpp_generator(feats)
@@ -352,12 +358,15 @@ if __name__ == "__main__":
         ds_test_vc1 = SpeakerTestDataset(args.test_data_vc1)
     if args.test_data_sitw:
         ds_test_sitw = SpeakerTestDataset(args.test_data_sitw)
+    """
     if args.use_dropadapt:
         assert args.use_dropclass
         if args.ds_adapt == 'vc':
             ds_adapt = ds_test_vc1
         if args.ds_adapt == 'sitw':
             ds_adapt = ds_test_sitw
+    
     if args.use_dropclass:
         assert not (args.use_dropadapt and args.drop_per_batch)
+    """
     train(ds_train)
