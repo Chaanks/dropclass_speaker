@@ -22,7 +22,7 @@ mfccdir=`pwd`/mfcc
 vaddir=`pwd`/mfcc
 
 
-sitw_root=/PATH/TO/SITW
+sitw_root=/corpus/sitw
 sitw_dev_trials_core=data/sitw_dev_test/trials/core-core.lst
 sitw_eval_trials_core=data/sitw_eval_test/trials/core-core.lst
 
@@ -36,10 +36,10 @@ fi
 if [ $stage -le 1 ]; then
   # Make MFCCs and compute the energy-based VAD for each dataset
   for name in sitw_eval_enroll sitw_eval_test sitw_dev_enroll sitw_dev_test; do
-    steps/make_mfcc.sh --write-utt2num-frames true --mfcc-config conf/mfcc.conf --nj 20 --cmd "$train_cmd" \
+    steps/make_mfcc.sh --write-utt2num-frames true --mfcc-config conf/mfcc.conf --nj 8 --cmd "$train_cmd" \
       data/${name} exp/make_mfcc $mfccdir
     utils/fix_data_dir.sh data/${name}
-    sid/compute_vad_decision.sh --nj 20 --cmd "$train_cmd" \
+    sid/compute_vad_decision.sh --nj 8 --cmd "$train_cmd" \
       data/${name} exp/make_vad $vaddir
     utils/fix_data_dir.sh data/${name}
   done
@@ -48,7 +48,7 @@ fi
 if [ $stage -le 2 ]; then
     # removes silence frames and performs cmvn
    for name in sitw_eval_enroll sitw_eval_test sitw_dev_enroll sitw_dev_test; do
-        local/nnet3/xvector/prepare_feats_for_egs.sh --nj 40 --cmd "$train_cmd" \
+        local/nnet3/xvector/prepare_feats_for_egs.sh --nj 8 --cmd "$train_cmd" \
         data/${name} data/${name}_nosil exp/${name}_nosil
     utils/fix_data_dir.sh data/${name}_nosil
   done

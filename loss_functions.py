@@ -49,9 +49,6 @@ class DropClassBase(nn.Module):
     def nodrop(self):
         self.dropmode = False
 
-    def forward_drop(self, input, label=None):
-        raise NotImplementedError
-
     def forward_nodrop(self, input, label=None):
         raise NotImplementedError
 

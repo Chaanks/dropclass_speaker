@@ -16,9 +16,9 @@ vaddir=`pwd`/mfcc
 
 
 # The trials file is downloaded by local/make_voxceleb1_v2.pl.
-voxceleb1_root=/PATH/TO/VC1
-voxceleb2_root=/PATH/TO/VC2
-musan_root=/PATH/TO/MUSAN
+voxceleb1_root=/corpus/voxceleb1
+voxceleb2_root=/corpus/voxceleb2
+musan_root=/corpus/musan
 
 stage=0
 
@@ -31,7 +31,7 @@ if [ $stage -le 0 ]; then
   local/make_voxceleb1_v2.pl $voxceleb1_root test data/voxceleb1_test
   # if you downloaded the dataset soon after it was released, you will want to use the make_voxceleb1.pl script instead.
   # local/make_voxceleb1.pl $voxceleb1_root data
-  cp data/voxceleb2_train data/train # comment out above line and add this one instead
+  cp -r data/voxceleb2_train data/train # comment out above line and add this one instead
   mv data/voxceleb1_test data/voxceleb1_test_old # rename vc1test so that the rest of the recipe can be run as normal
   utils/combine_data.sh data/voxceleb1_test data/voxceleb1_test_old data/voxceleb1_train
 fi
@@ -39,10 +39,10 @@ fi
 if [ $stage -le 1 ]; then
   # Make MFCCs and compute the energy-based VAD for each dataset
   for name in train voxceleb1_test; do
-    steps/make_mfcc.sh --write-utt2num-frames true --mfcc-config conf/mfcc.conf --nj 40 --cmd "$train_cmd" \
+    steps/make_mfcc.sh --write-utt2num-frames true --mfcc-config conf/mfcc.conf --nj 8 --cmd "$train_cmd" \
       data/${name} exp/make_mfcc $mfccdir
     utils/fix_data_dir.sh data/${name}
-    sid/compute_vad_decision.sh --nj 40 --cmd "$train_cmd" \
+    sid/compute_vad_decision.sh --nj 8 --cmd "$train_cmd" \
       data/${name} exp/make_vad $vaddir
     utils/fix_data_dir.sh data/${name}
   done
@@ -110,7 +110,7 @@ if [ $stage -le 3 ]; then
   # Make MFCCs for the augmented data.  Note that we do not compute a new
   # vad.scp file here.  Instead, we use the vad.scp from the clean version of
   # the list.
-  steps/make_mfcc.sh --mfcc-config conf/mfcc.conf --nj 40 --cmd "$train_cmd" \
+  steps/make_mfcc.sh --mfcc-config conf/mfcc.conf --nj 8 --cmd "$train_cmd" \
     data/train_aug_1m exp/make_mfcc $mfccdir
 
   # Combine the clean and augmented VoxCeleb2 list.  This is now roughly
@@ -122,11 +122,11 @@ if [ $stage -le 4 ]; then
   # This script applies CMVN and removes nonspeech frames.  Note that this is somewhat
   # wasteful, as it roughly doubles the amount of training data on disk.  After
   # creating training examples, this can be removed.
-  local/nnet3/xvector/prepare_feats_for_egs.sh --nj 40 --cmd "$train_cmd" \
+  local/nnet3/xvector/prepare_feats_for_egs.sh --nj 8 --cmd "$train_cmd" \
     data/train_combined data/train_combined_no_sil exp/train_combined_no_sil
   utils/fix_data_dir.sh data/train_combined_no_sil
 
-  local/nnet3/xvector/prepare_feats_for_egs.sh --nj 40 --cmd "$train_cmd" \
+  local/nnet3/xvector/prepare_feats_for_egs.sh --nj 8 --cmd "$train_cmd" \
     data/voxceleb1_test data/voxceleb1_nosil exp/voxceleb1_nosil
   utils/fix_data_dir.sh data/voxceleb1_nosil
 fi

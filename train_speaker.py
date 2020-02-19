@@ -24,13 +24,14 @@ from models_speaker import ETDNN, FTDNN, XTDNN
 from test_model_speaker import test, test_nosil
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from utils import (SpeakerRecognitionMetrics, aggregate_probs, drop_adapt, drop_adapt_combine, drop_adapt_random, drop_adapt_onlydata,
-                   drop_classes, drop_per_batch, schedule_lr)
+from utils import (SpeakerRecognitionMetrics, aggregate_probs, drop_adapt, drop_adapt_combine, drop_adapt_random,
+                   drop_adapt_onlydata, drop_classes, drop_per_batch, schedule_lr)
 
 
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train SV model')
@@ -40,6 +41,7 @@ def parse_args():
     assert os.path.isfile(args.cfg)
     args._start_time = time.ctime()
     return args
+
 
 def parse_config(args):
     config = configparser.ConfigParser()
@@ -78,28 +80,15 @@ def parse_config(args):
     args.checkpoint_interval = config['Outputs'].getint('checkpoint_interval')
     args.results_pkl = os.path.join(args.model_dir, 'results.p')
 
-    #args.use_dropclass = config['Dropclass'].getboolean('use_dropclass', fallback=False)
-    #args.its_per_drop = config['Dropclass'].getint('its_per_drop', fallback=1000)
-    #args.num_drop = config['Dropclass'].getint('num_drop', fallback=2000)
-    #args.drop_per_batch = config['Dropclass'].getboolean('drop_per_batch', fallback=False)
-    #args.reset_affine_each_it = config['Dropclass'].getboolean('reset_affine_each_it', fallback=False)
-
-    #args.use_dropadapt = config['Dropclass'].getboolean('use_dropadapt', fallback=False)
-    #args.ds_adapt = config['Dropclass'].get('ds_adapt', fallback='vc')
-    #assert args.ds_adapt in ['vc', 'sitw']
-    #args.dropadapt_combine = config['Dropclass'].getboolean('dropadapt_combine', fallback=True)
-    #args.dropadapt_uniform_agg = config['Dropclass'].getboolean('dropadapt_uniform_agg', fallback=False)
-    #args.dropadapt_random = config['Dropclass'].getboolean('dropadapt_random', fallback=False)
-    #args.dropadapt_onlydata = config['Dropclass'].getboolean('dropadapt_onlydata', fallback=False)
     return args
 
 
 def train(ds_train):
     use_cuda = not args.no_cuda and torch.cuda.is_available()
-    print('='*30)
+    print('=' * 30)
     print('USE_CUDA SET TO: {}'.format(use_cuda))
     print('CUDA AVAILABLE?: {}'.format(torch.cuda.is_available()))
-    print('='*30)
+    print('=' * 30)
     device = torch.device("cuda" if use_cuda else "cpu")
 
     writer = SummaryWriter(comment=os.path.basename(args.cfg))
@@ -127,7 +116,6 @@ def train(ds_train):
     if args.loss_type == 'sphereface':
         classifier = SphereFace(512, num_classes)
 
-
     generator.train()
     classifier.train()
 
@@ -138,18 +126,18 @@ def train(ds_train):
         model_str = os.path.join(args.model_dir, '{}_{}.pt')
         for model, modelstr in [(generator, 'g'), (classifier, 'c')]:
             model.load_state_dict(torch.load(model_str.format(modelstr, args.resume_checkpoint)))
-
+    """
     if args.use_dropadapt and args.use_dropclass:
         model_str = os.path.join(args.model_dir, '{}_adapt_start.pt')
         for model, modelstr in [(generator, 'g'), (classifier, 'c')]:
             model_path = model_str.format(modelstr)
             assert os.path.isfile(model_path), "Couldn't find [g|c]_adapt_start.pt models in {}".format(args.model_dir)
             model.load_state_dict(torch.load(model_path))
+    """
 
-    optimizer = torch.optim.SGD([{'params': generator.parameters(), 'lr': args.lr}, 
-                                    {'params': classifier.parameters(), 'lr': args.lr * args.classifier_lr_mult},
-                                ],
-                                    momentum=args.momentum)
+    optimizer = torch.optim.SGD([{'params': generator.parameters(), 'lr': args.lr},
+                                 {'params': classifier.parameters(), 'lr': args.lr * args.classifier_lr_mult}],
+                                momentum=args.momentum)
 
     if args.label_smooth_type == 'None':
         criterion = nn.CrossEntropyLoss()
@@ -184,10 +172,10 @@ def train(ds_train):
 
     data_generator = ds_train.get_batches(batch_size=args.batch_size, max_seq_len=args.max_seq_len)
 
-    #if args.use_dropclass:
+    # if args.use_dropclass:
     #    classifier.drop()
-    #else:
-    
+    # else:
+
     classifier.nodrop()
 
     if args.model_type == 'FTDNN':
@@ -206,56 +194,15 @@ def train(ds_train):
             continue
 
         if args.model_type == 'FTDNN':
-            generator.set_dropout_alpha(drop_schedule[iterations-1])
-
-        """
-        if args.use_dropclass and not args.drop_per_batch and not args.use_dropadapt:
-            if iterations % args.its_per_drop == 0 or iterations == 1:
-                ds_train, classifier = drop_classes(ds_train, classifier, num_drop=args.num_drop)
-                if args.reset_affine_each_it:
-                    classifier.reset_parameters()
-
-        if args.use_dropclass and args.use_dropadapt:
-            if iterations % args.its_per_drop == 0 or iterations == 2:
-                # this feeds one batch in to 'reserve' CUDA memory, having iterations == 1 fails
-                if args.dropadapt_random:
-                    ds_train, classifier = drop_adapt_random(classifier, ds_train, num_drop=args.num_drop)
-                else:
-                    with torch.no_grad():
-                        print('------ [{}/{}] classes remaining'.format(len(classifier.rem_classes), classifier.n_classes))
-                        print('------ Aggregating training class probs on {}'.format(args.ds_adapt))
-                        full_probs = aggregate_probs(ds_adapt, generator, classifier, device,
-                                                        batch_size=300, max_seq_len=args.max_seq_len, uniform=args.dropadapt_uniform_agg)
-                        np.save(os.path.join(args.model_dir, 'probs_{}.npy'.format(iterations)), full_probs)
-                        print('------ Dropping ~{} more classes from the next {} training steps'.format(args.num_drop, args.its_per_drop))
-                        if args.dropadapt_combine:
-                            print('------ Combining least probable classes into one...')
-                            ds_train, classifier = drop_adapt_combine(full_probs, classifier, ds_train, num_drop=args.num_drop)
-                        else:
-                            if args.dropadapt_onlydata:
-                                ds_train = drop_adapt_onlydata(full_probs, ds_train, num_drop=args.num_drop)
-                            else:
-                                ds_train, classifier = drop_adapt(full_probs, classifier, ds_train, num_drop=args.num_drop)
-                        print('------ [{}/{}] classes remaining'.format(len(classifier.rem_classes), classifier.n_classes))
-                        np.save(os.path.join(args.model_dir, 'remclasses_{}.npy'.format(iterations)), classifier.rem_classes)
-                        del full_probs
-        """
+            generator.set_dropout_alpha(drop_schedule[iterations - 1])
 
         feats, iden = next(data_generator)
-
-        """
-        if args.drop_per_batch and args.use_dropclass:
-            classifier = drop_per_batch(iden, classifier)
-            if args.reset_affine_each_it:
-                classifier.reset_parameters()
-        """
-
         feats = feats.to(device)
 
-        #if args.use_dropclass:
+        # if args.use_dropclass:
         #    iden = classifier.get_mini_labels(iden).to(device)
-        #else:
-        
+        # else:
+
         iden = torch.LongTensor(iden).to(device)
 
         if args.multi_gpu:
@@ -282,15 +229,14 @@ def train(ds_train):
         rmean_loss = np.nanmean(np.array(running_loss))
 
         if iterations % 10 == 0:
-            msg = "{}: {}: [{}/{}] \t C-Loss:{:.4f}, AvgLoss:{:.4f}, lr: {}, bs: {}".format(
-                                                                                args.model_dir,
-                                                                                time.ctime(),
-                                                                                iterations,
-                                                                                args.num_iterations,
-                                                                                loss.item(),
-                                                                                rmean_loss, 
-                                                                                get_lr(optimizer), 
-                                                                                len(feats))
+            msg = "{}: {}: [{}/{}] \t C-Loss:{:.4f}, AvgLoss:{:.4f}, lr: {}, bs: {}".format(args.model_dir,
+                                                                                            time.ctime(),
+                                                                                            iterations,
+                                                                                            args.num_iterations,
+                                                                                            loss.item(),
+                                                                                            rmean_loss,
+                                                                                            get_lr(optimizer),
+                                                                                            len(feats))
             print(msg)
             print(msg, file=open(args.log_file, "a"))
 
@@ -328,7 +274,7 @@ def train(ds_train):
                 print('Best SITW(DEV) EER: {}'.format(best_sitw_eer))
                 print('Best SITW(DEV) EER: {}'.format(best_sitw_eer), file=open(args.log_file, "a"))
                 rpkl[iterations]['sitw_eer'] = sitw_eer
-            
+
             pickle.dump(rpkl, open(args.results_pkl, "wb"))
 
     # ---- Final model saving -----
@@ -358,15 +304,5 @@ if __name__ == "__main__":
         ds_test_vc1 = SpeakerTestDataset(args.test_data_vc1)
     if args.test_data_sitw:
         ds_test_sitw = SpeakerTestDataset(args.test_data_sitw)
-    """
-    if args.use_dropadapt:
-        assert args.use_dropclass
-        if args.ds_adapt == 'vc':
-            ds_adapt = ds_test_vc1
-        if args.ds_adapt == 'sitw':
-            ds_adapt = ds_test_sitw
-    
-    if args.use_dropclass:
-        assert not (args.use_dropadapt and args.drop_per_batch)
-    """
+
     train(ds_train)

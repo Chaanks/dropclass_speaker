@@ -46,8 +46,8 @@ def load_one_tomany(file, numpy=False):
 
 def train_transform(feats, seqlen):
     leeway = feats.shape[0] - seqlen
-    startslice = np.random.randint(0, int(leeway)) if leeway > 0  else 0
-    feats = feats[startslice:startslice+seqlen] if leeway > 0 else np.pad(feats, [(0,-leeway), (0,0)], 'constant')
+    startslice = np.random.randint(0, int(leeway)) if leeway > 0 else 0
+    feats = feats[startslice:startslice + seqlen] if leeway > 0 else np.pad(feats, [(0, -leeway), (0, 0)], 'constant')
     return torch.FloatTensor(feats)
 
 async def get_item_train(instructions):
@@ -75,7 +75,7 @@ class SpeakerDataset(Dataset):
         utt2spk_path = os.path.join(data_base_path, 'utt2spk')
         spk2utt_path = os.path.join(data_base_path, 'spk2utt')
         feats_scp_path = os.path.join(data_base_path, 'feats.scp')
-
+        print(utt2spk_path)
         assert os.path.isfile(utt2spk_path)
         assert os.path.isfile(feats_scp_path)
         assert os.path.isfile(spk2utt_path)
@@ -141,7 +141,8 @@ class SpeakerDataset(Dataset):
             # batch_feats = parallel(delayed(self.get_item)(a) for a in zip(batch_fpaths, lens))
 
             yield torch.stack(batch_feats), list(batch_ids)
-    
+
+    """ 
     def set_remaining_classes(self, remaining:list):
         self.allowed_classes = sorted(list(set(remaining)))
         self.ignored = sorted(set(np.arange(self.num_classes)) - set(remaining))
@@ -161,6 +162,7 @@ class SpeakerDataset(Dataset):
             # modify self.spk_utt_dict[combined_class_label] to contain all the ignored ids utterances
             self.spk_utt_dict[combined_class_label] += self.spk_utt_dict[ig]
         self.spk_utt_dict[combined_class_label] = list(set(self.spk_utt_dict[combined_class_label]))
+    """ 
 
     def get_batches_example(self, num_classes=40, egs_per_cls=42, max_seq_len=350):
         # this is only for the plot in the paper
