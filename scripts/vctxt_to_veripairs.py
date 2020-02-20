@@ -21,12 +21,12 @@ if __name__ == "__main__":
 
     labs, wav0s, wav1s = load_n_col(infile)
 
-    utt0s = ['_'.join(i[:-4].split('/')) for i in wav0s]
-    utt1s = ['_'.join(i[:-4].split('/')) for i in wav1s]
+    utt0s = ['-'.join(i[:-4].split('/')) for i in wav0s]
+    utt1s = ['-'.join(i[:-4].split('/')) for i in wav1s]
 
-    # targs = ['target' if l == '1' else 'nontarget' for l in labs]
+    #targs = ['target' if l == '1' else 'nontarget' for l in labs]
 
     with open(outfile, 'w+') as fp:
-        for l, u0, u1 in zip(l, utt0s, utt1s):
+        for l, u0, u1 in zip(labs, utt0s, utt1s):
             line = '{} {} {}\n'.format(l, u0, u1)
             fp.write(line)

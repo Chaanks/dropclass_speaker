@@ -26,7 +26,7 @@ sitw_root=/corpus/sitw
 sitw_dev_trials_core=data/sitw_dev_test/trials/core-core.lst
 sitw_eval_trials_core=data/sitw_eval_test/trials/core-core.lst
 
-stage=0
+stage=3
 
 if [ $stage -le 0 ]; then
   # Prepare Speakers in the Wild.  This is our evaluation dataset.
@@ -57,6 +57,6 @@ fi
 if [ $stage -le 3 ]; then
     # combine dev portions
     # copy trials over
-    # utils/combine_data.sh data/sitw_dev_combined data/sitw_dev_enroll_nosil data/sitw_dev_test_nosil
-    # cp -r data/sitw_dev_test/trials data/sitw_dev_combined
+    utils/combine_data.sh data/sitw_dev_combined data/sitw_dev_enroll_nosil data/sitw_dev_test_nosil
+    cp -r data/sitw_dev_test/trials data/sitw_dev_combined
 fi

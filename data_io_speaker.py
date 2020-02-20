@@ -216,7 +216,16 @@ class SpeakerTestDataset(Dataset):
 
     def init_uniform(self):
         # current undersampling, TODO: oversample option instead.
+        print("Verify ", self.data_base_path)
+        cpt = 0
+        missing = 0
+        for i in self.enrol_utts:
+            cpt += 1
+            if i not in self.utt2spk_dict:
+                missing += 1
+        print("[{}/{}] utterances found".format(cpt - missing, cpt))
         self.enrol_uspkrs = [self.utt2spk_dict[i] for i in self.enrol_utts]
+
         self.utts_per_espk = Counter(self.enrol_uspkrs)
         self.min_utts_spk = self.utts_per_espk[min(self.utts_per_espk, key=self.utts_per_espk.get)]
         counts = {}
