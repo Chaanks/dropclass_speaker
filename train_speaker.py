@@ -24,8 +24,7 @@ from models_speaker import ETDNN, FTDNN, XTDNN
 from test_model_speaker import test, test_nosil
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from utils import (SpeakerRecognitionMetrics, aggregate_probs, drop_adapt, drop_adapt_combine, drop_adapt_random,
-                   drop_adapt_onlydata, drop_classes, drop_per_batch, schedule_lr)
+from utils import (SpeakerRecognitionMetrics, schedule_lr)
 
 
 def get_lr(optimizer):
@@ -126,14 +125,6 @@ def train(ds_train):
         model_str = os.path.join(args.model_dir, '{}_{}.pt')
         for model, modelstr in [(generator, 'g'), (classifier, 'c')]:
             model.load_state_dict(torch.load(model_str.format(modelstr, args.resume_checkpoint)))
-    """
-    if args.use_dropadapt and args.use_dropclass:
-        model_str = os.path.join(args.model_dir, '{}_adapt_start.pt')
-        for model, modelstr in [(generator, 'g'), (classifier, 'c')]:
-            model_path = model_str.format(modelstr)
-            assert os.path.isfile(model_path), "Couldn't find [g|c]_adapt_start.pt models in {}".format(args.model_dir)
-            model.load_state_dict(torch.load(model_path))
-    """
 
     optimizer = torch.optim.SGD([{'params': generator.parameters(), 'lr': args.lr},
                                  {'params': classifier.parameters(), 'lr': args.lr * args.classifier_lr_mult}],
@@ -172,10 +163,6 @@ def train(ds_train):
 
     data_generator = ds_train.get_batches(batch_size=args.batch_size, max_seq_len=args.max_seq_len)
 
-    # if args.use_dropclass:
-    #    classifier.drop()
-    # else:
-
     classifier.nodrop()
 
     if args.model_type == 'FTDNN':
@@ -198,10 +185,6 @@ def train(ds_train):
 
         feats, iden = next(data_generator)
         feats = feats.to(device)
-
-        # if args.use_dropclass:
-        #    iden = classifier.get_mini_labels(iden).to(device)
-        # else:
 
         iden = torch.LongTensor(iden).to(device)
 
