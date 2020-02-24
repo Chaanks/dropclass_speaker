@@ -19,12 +19,12 @@
 
 # Similar to the VoxCeleb data prep
 
-#cp scripts/run_sitw_dataprep.sh $KALDI_ROOT/egs/sitw/v2/
-#cd $KALDI_ROOT/egs/sitw/v2
+cp scripts/run_sitw_dataprep.sh $KALDI_ROOT/egs/sitw/v2/
+cd $KALDI_ROOT/egs/sitw/v2
 #rm -rf data/
 #rm -rf exp/
-#source path.sh
-#./run_sitw_dataprep.sh
+source path.sh
+./run_sitw_dataprep.sh
 
 
 #Additional necessary data prep

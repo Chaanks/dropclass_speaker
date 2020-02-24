@@ -73,6 +73,7 @@ def parse_config(args):
     args.scheduler_lambda = config['Hyperparams'].getfloat('scheduler_lambda', fallback=0.5)
     args.multi_gpu = config['Hyperparams'].getboolean('multi_gpu', fallback=False)
     args.classifier_lr_mult = config['Hyperparams'].getfloat('classifier_lr_mult', fallback=1.)
+    args.log_interval = config['Hyperparams'].getfloat('log_interval', fallback=100)
 
     args.model_dir = config['Outputs']['model_dir']
     args.log_file = os.path.join(args.model_dir, 'train.log')
@@ -84,10 +85,10 @@ def parse_config(args):
 
 def train(ds_train):
     use_cuda = not args.no_cuda and torch.cuda.is_available()
-    print('=' * 30)
+    print('\n' + '=' * 30)
     print('USE_CUDA SET TO: {}'.format(use_cuda))
     print('CUDA AVAILABLE?: {}'.format(torch.cuda.is_available()))
-    print('=' * 30)
+    print('=' * 30 + '\n')
     device = torch.device("cuda" if use_cuda else "cpu")
 
     writer = SummaryWriter(comment=os.path.basename(args.cfg))
@@ -211,7 +212,7 @@ def train(ds_train):
         running_loss.append(loss.item())
         rmean_loss = np.nanmean(np.array(running_loss))
 
-        if iterations % 10 == 0:
+        if iterations % args.log_interval == 0:
             msg = "{}: {}: [{}/{}] \t C-Loss:{:.4f}, AvgLoss:{:.4f}, lr: {}, bs: {}".format(args.model_dir,
                                                                                             time.ctime(),
                                                                                             iterations,
@@ -249,13 +250,13 @@ def train(ds_train):
 
             if args.test_data_sitw:
                 sitw_eer = test_nosil(generator, ds_test_sitw, device)
-                print('EER on SITW(DEV): {}'.format(sitw_eer))
-                print('EER on SITW(DEV): {}'.format(sitw_eer), file=open(args.log_file, "a"))
+                print('EER on SITW: {}'.format(sitw_eer))
+                print('EER on SITW: {}'.format(sitw_eer), file=open(args.log_file, "a"))
                 writer.add_scalar('sitw_eer', sitw_eer, iterations)
                 if sitw_eer < best_sitw_eer[1]:
                     best_sitw_eer = (iterations, sitw_eer)
-                print('Best SITW(DEV) EER: {}'.format(best_sitw_eer))
-                print('Best SITW(DEV) EER: {}'.format(best_sitw_eer), file=open(args.log_file, "a"))
+                print('Best SITW EER: {}'.format(best_sitw_eer))
+                print('Best SITW EER: {}'.format(best_sitw_eer), file=open(args.log_file, "a"))
                 rpkl[iterations]['sitw_eer'] = sitw_eer
 
             pickle.dump(rpkl, open(args.results_pkl, "wb"))

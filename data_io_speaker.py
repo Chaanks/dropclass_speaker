@@ -75,7 +75,6 @@ class SpeakerDataset(Dataset):
         utt2spk_path = os.path.join(data_base_path, 'utt2spk')
         spk2utt_path = os.path.join(data_base_path, 'spk2utt')
         feats_scp_path = os.path.join(data_base_path, 'feats.scp')
-        print(utt2spk_path)
         assert os.path.isfile(utt2spk_path)
         assert os.path.isfile(feats_scp_path)
         assert os.path.isfile(spk2utt_path)
@@ -142,27 +141,6 @@ class SpeakerDataset(Dataset):
 
             yield torch.stack(batch_feats), list(batch_ids)
 
-    """ 
-    def set_remaining_classes(self, remaining:list):
-        self.allowed_classes = sorted(list(set(remaining)))
-        self.ignored = sorted(set(np.arange(self.num_classes)) - set(remaining))
-        self.idpool = self.allowed_classes.copy()
-
-    def set_ignored_classes(self, ignored:list):
-        self.ignored = sorted(list(set(ignored)))
-        self.allowed_classes = sorted(set(np.arange(self.num_classes)) - set(ignored))
-        self.idpool = self.allowed_classes.copy()
-
-    def set_remaining_classes_comb(self, remaining:list, combined_class_label):
-        remaining.append(combined_class_label)
-        self.allowed_classes = sorted(list(set(remaining)))
-        self.ignored = sorted(set(np.arange(self.num_classes)) - set(remaining))
-        self.idpool = self.allowed_classes.copy()        
-        for ig in self.ignored:
-            # modify self.spk_utt_dict[combined_class_label] to contain all the ignored ids utterances
-            self.spk_utt_dict[combined_class_label] += self.spk_utt_dict[ig]
-        self.spk_utt_dict[combined_class_label] = list(set(self.spk_utt_dict[combined_class_label]))
-    """ 
 
     def get_batches_example(self, num_classes=40, egs_per_cls=42, max_seq_len=350):
         # this is only for the plot in the paper
@@ -201,7 +179,6 @@ class SpeakerTestDataset(Dataset):
         verilist_path = os.path.join(data_base_path, 'veri_pairs')
         utt2spk_path = os.path.join(data_base_path, 'utt2spk')
 
-
         assert os.path.isfile(verilist_path)
 
         if os.path.isfile(feats_scp_path):
@@ -209,23 +186,33 @@ class SpeakerTestDataset(Dataset):
 
         self.veri_labs, self.veri_0, self.veri_1 = load_n_col(verilist_path, numpy=True)
         self.utt2spk_dict = odict_from_2_col(utt2spk_path)
+        self.verif_data()
+
         self.enrol_utts = list(set(self.veri_0))
         self.veri_utts = list(set(np.concatenate([self.veri_0, self.veri_1])))
         self.veri_labs = self.veri_labs.astype(int)
         self.init_uniform()
+ 
+    def verif_data(self):
+
+        for utt in self.veri_0:
+            if utt not in self.utt2spk_dict:
+                print(utt)
+                a = input()
+
+        print("\nVerify trials for", self.data_base_path.split('/')[-1])
+        initial_size = len(self.veri_0)
+        initial_size_ = len(self.veri_1)
+        self.veri_0 = list(filter(lambda utt: utt in self.utt2spk_dict, self.veri_0))
+        self.veri_1 = list(filter(lambda utt: utt in self.utt2spk_dict, self.veri_1))
+        print("[{}/{}] utterances found".format(len(self.veri_0), initial_size))
+        print("[{}/{}] utterances found".format(len(self.veri_1), initial_size_))
+        a = input()
 
     def init_uniform(self):
         # current undersampling, TODO: oversample option instead.
-        print("Verify ", self.data_base_path)
-        cpt = 0
-        missing = 0
-        for i in self.enrol_utts:
-            cpt += 1
-            if i not in self.utt2spk_dict:
-                missing += 1
-        print("[{}/{}] utterances found".format(cpt - missing, cpt))
-        self.enrol_uspkrs = [self.utt2spk_dict[i] for i in self.enrol_utts]
 
+        self.enrol_uspkrs = [self.utt2spk_dict[i] for i in self.enrol_utts]
         self.utts_per_espk = Counter(self.enrol_uspkrs)
         self.min_utts_spk = self.utts_per_espk[min(self.utts_per_espk, key=self.utts_per_espk.get)]
         counts = {}

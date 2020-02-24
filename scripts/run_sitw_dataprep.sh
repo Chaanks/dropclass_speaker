@@ -54,9 +54,16 @@ if [ $stage -le 2 ]; then
   done
 fi
 
+#if [ $stage -le 3 ]; then
+#    # combine dev portions
+#    # copy trials over
+#    utils/combine_data.sh data/sitw_dev_combined data/sitw_dev_enroll_nosil data/sitw_dev_test_nosil
+#    cp -r data/sitw_dev_test/trials data/sitw_dev_combined
+#fi
+
 if [ $stage -le 3 ]; then
-    # combine dev portions
+    # combine eval portions
     # copy trials over
-    utils/combine_data.sh data/sitw_dev_combined data/sitw_dev_enroll_nosil data/sitw_dev_test_nosil
-    cp -r data/sitw_dev_test/trials data/sitw_dev_combined
+    utils/combine_data.sh data/sitw_eval_combined data/sitw_eval_enroll_nosil data/sitw_eval_test_nosil
+    cp -r data/sitw_eval_test/trials data/sitw_eval_combined
 fi
