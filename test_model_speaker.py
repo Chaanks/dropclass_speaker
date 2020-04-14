@@ -145,7 +145,7 @@ if __name__ == "__main__":
         g_path_sitw = g_path
         g_path_vc1 = g_path
     else:
-        g_path = os.path.join(args.model_dir, "g_{}.pt".format(args.checkpoint))
+        g_path = os.path.join(args.model_dir, "/checkpoints/g_{}.pt".format(args.checkpoint))
         g_path_sitw = g_path
         g_path_vc1 = g_path
 
@@ -163,14 +163,14 @@ if __name__ == "__main__":
         if args.test_data_vc1:
             v1eers = [(rpkl[key]['vc1_eer'], key) for key in rpkl]
             best_vc1_cp = min(v1eers)[1]
-            g_path_vc1 = os.path.join(args.model_dir, "g_{}.pt".format(best_vc1_cp))
+            g_path_vc1 = os.path.join(args.model_dir, "/checkpoints/g_{}.pt".format(best_vc1_cp))
             print('Best VC1 Model: {}'.format(g_path_vc1))
 
 
         if args.test_data_sitw:
             sitweers = [(rpkl[key]['sitw_eer'], key) for key in rpkl]
             best_sitw_cp = min(sitweers)[1]
-            g_path_sitw = os.path.join(args.model_dir, "g_{}.pt".format(best_sitw_cp))
+            g_path_sitw = os.path.join(args.model_dir, "/checkpoints/g_{}.pt".format(best_sitw_cp))
             print('Best SITW Model: {}'.format(g_path_sitw))
 
     if args.test_data_vc1:

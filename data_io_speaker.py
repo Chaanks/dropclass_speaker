@@ -14,7 +14,6 @@ from torch.utils.data import Dataset
 
 from kaldi_io import read_mat
 
-
 def load_n_col(file, numpy=False):
     data = []
     with open(file) as fp:
@@ -113,6 +112,12 @@ class SpeakerDataset(Dataset):
         feats = train_transform(feats, seqlen)
         return feats
 
+    def __getitem__(self, idx):
+        utt = self.utt_list[idx]
+        fpath = self.utt_fpath_dict[utt]
+        feats = torch.FloatTensor(read_mat(fpath))
+        return feats, utt
+
     def get_batches(self, batch_size=256, max_seq_len=400):
         # with Parallel(n_jobs=self.num_workers) as parallel:
         assert batch_size < len(self.allowed_classes) #Metric learning assumption large num classes
@@ -142,35 +147,6 @@ class SpeakerDataset(Dataset):
             yield torch.stack(batch_feats), list(batch_ids)
 
 
-    def get_batches_example(self, num_classes=40, egs_per_cls=42, max_seq_len=350):
-        # this is only for the plot in the paper
-        batch_size = num_classes
-        lens = [max_seq_len for _ in range(batch_size)]
-        self.idpool = np.random.choice(self.allowed_classes, size=num_classes, replace=False)
-        for i in range(egs_per_cls):
-            if len(self.idpool) <= batch_size:
-                batch_ids = np.array(self.idpool)
-                self.idpool = self.allowed_classes.copy()
-                rem_ids = np.random.choice(self.idpool, size=batch_size-len(batch_ids), replace=False)
-                batch_ids = np.concatenate([batch_ids, rem_ids])
-                self.idpool = list(set(self.idpool) - set(rem_ids))
-            else:
-                batch_ids = np.random.choice(self.idpool, size=batch_size, replace=False)
-                self.idpool = list(set(self.idpool) - set(batch_ids))
-
-            batch_fpaths = []
-            for i in batch_ids:
-                utt = np.random.choice(self.spk_utt_dict[i])
-                batch_fpaths.append(self.utt_fpath_dict[utt])
-
-            if self.asynchr:
-                batch_feats = async_map(get_item_train, zip(batch_fpaths, lens))
-            else:
-                batch_feats = [self.get_item(a) for a in zip(batch_fpaths, lens)]
-            # batch_feats = parallel(delayed(self.get_item)(a) for a in zip(batch_fpaths, lens))
-
-            yield torch.stack(batch_feats), list(batch_ids)
-
 class SpeakerTestDataset(Dataset):
     
     def __init__(self, data_base_path, asynchr=True):
@@ -194,20 +170,20 @@ class SpeakerTestDataset(Dataset):
         self.init_uniform()
  
     def verif_data(self):
-
         for utt in self.veri_0:
             if utt not in self.utt2spk_dict:
-                print(utt)
-                a = input()
+                print("utterance {} not found".format(utt))
+
+        for utt in self.veri_1:
+            if utt not in self.utt2spk_dict:
+                print("utterance {} not found".format(utt))
 
         print("\nVerify trials for", self.data_base_path.split('/')[-1])
-        initial_size = len(self.veri_0)
-        initial_size_ = len(self.veri_1)
+        initial_size = len(self.veri_0) + len(self.veri_1)
         self.veri_0 = list(filter(lambda utt: utt in self.utt2spk_dict, self.veri_0))
         self.veri_1 = list(filter(lambda utt: utt in self.utt2spk_dict, self.veri_1))
-        print("[{}/{}] utterances found".format(len(self.veri_0), initial_size))
-        print("[{}/{}] utterances found".format(len(self.veri_1), initial_size_))
-        a = input()
+        final_size = len(self.veri_0) + len(self.veri_1)
+        print("[{}/{}] utterances found".format(final_size, initial_size))
 
     def init_uniform(self):
         # current undersampling, TODO: oversample option instead.

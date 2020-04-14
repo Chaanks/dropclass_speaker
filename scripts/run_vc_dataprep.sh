@@ -155,3 +155,16 @@ if [ $stage -le 5 ]; then
   # Now we're ready to create training examples.
   utils/fix_data_dir.sh data/train_combined_no_sil
 fi
+
+if [ $stage -le 9 ]; then
+  # Now we will extract x-vectors used for centering, LDA, and PLDA training.
+  # Note that data/train_combined has well over 2 million utterances,
+  # which is far more than is needed to train the generative PLDA model.
+  # In addition, many of the utterances are very short, which causes a
+  # mismatch with our evaluation conditions.  In the next command, we
+  # create a data directory that contains the longest 200,000 recordings,
+  # which we will use to train the backend.
+  utils/subset_data_dir.sh \
+    --utt-list <(sort -n -k 2 data/train_combined_no_sil/utt2num_frames | tail -n 200000) \
+    data/train_combined data/train_combined_200k
+fi

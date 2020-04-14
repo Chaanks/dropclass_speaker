@@ -123,7 +123,7 @@ def train(ds_train):
     classifier = classifier.to(device)
 
     if args.resume_checkpoint != 0:
-        model_str = os.path.join(args.model_dir, '{}_{}.pt')
+        model_str = os.path.join(args.model_dir, '/checkpoints/{}_{}.pt')
         for model, modelstr in [(generator, 'g'), (classifier, 'c')]:
             model.load_state_dict(torch.load(model_str.format(modelstr, args.resume_checkpoint)))
 
@@ -163,8 +163,6 @@ def train(ds_train):
         dpp_generator = nn.DataParallel(generator).to(device)
 
     data_generator = ds_train.get_batches(batch_size=args.batch_size, max_seq_len=args.max_seq_len)
-
-    classifier.nodrop()
 
     if args.model_type == 'FTDNN':
         drop_indexes = np.linspace(0, 1, args.num_iterations)

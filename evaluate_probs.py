@@ -92,11 +92,6 @@ def evaluate_train(ds_train):
 
     data_generator = ds_train.get_batches(batch_size=args.batch_size, max_seq_len=args.max_seq_len)
 
-    if args.use_dropclass:
-        classifier.drop()
-    else:
-        classifier.nodrop()
-
     if args.model_type == 'FTDNN':
         drop_indexes = np.linspace(0, 1, args.num_iterations)
         drop_sch = ([0, 0.5, 1], [0, 0.5, 0])

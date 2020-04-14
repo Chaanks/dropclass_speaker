@@ -1,0 +1,22 @@
+export KALDI_ROOT=/home/jarod/kaldi
+PATH=$PATH:$KALDI_ROOT/src/bin:\
+PATH=$PATH:$KALDI_ROOT/src/chainbin:\
+PATH=$PATH:$KALDI_ROOT/src/featbin:\
+PATH=$PATH:$KALDI_ROOT/src/fgmmbin:\
+PATH=$PATH:$KALDI_ROOT/src/fstbin:\
+PATH=$PATH:$KALDI_ROOT/src/gmmbin:\
+PATH=$PATH:$KALDI_ROOT/src/ivectorbin:\
+PATH=$PATH:$KALDI_ROOT/src/kwsbin:\
+PATH=$PATH:$KALDI_ROOT/src/latbin:\
+PATH=$PATH:$KALDI_ROOT/src/lmbin:\
+PATH=$PATH:$KALDI_ROOT/src/nnet2bin:\
+PATH=$PATH:$KALDI_ROOT/src/nnet3bin:\
+PATH=$PATH:$KALDI_ROOT/src/nnetbin:\
+PATH=$PATH:$KALDI_ROOT/src/online2bin:\
+PATH=$PATH:$KALDI_ROOT/src/onlinebin:\
+PATH=$PATH:$KALDI_ROOT/src/rnnlmbin:\
+PATH=$PATH:$KALDI_ROOT/src/sgmm2bin:\
+PATH=$PATH:$KALDI_ROOT/src/sgmmbin:\
+PATH=$PATH:$KALDI_ROOT/src/tfrnnlmbin:\
+PATH=$PATH:$KALDI_ROOT/src/cudadecoderbin:\
+export PATH
